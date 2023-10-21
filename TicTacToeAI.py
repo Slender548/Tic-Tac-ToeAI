@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import psycopg2
+import random
 
 cursor = psycopg2.connect(user='postgres',
                           password='1234',
@@ -29,6 +30,16 @@ winning_combinations = [
     [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
     [0, 4, 8], [2, 4, 6]  # diagonals
 ]
+almost_winning_combinations = {
+    (0, 1): 2, (0, 2): 3, (1, 2): 3,  # first row
+    (3, 4): 5, (3, 5): 4, (4, 5): 3,  # second row
+    (6, 7): 8, (6, 8): 7, (7, 8): 6,  # third row
+    (0, 3): 6, (0, 6): 3, (3, 6): 0,  # first column
+    (1, 4): 7, (1, 7): 4, (4, 7): 1,  # second column
+    (2, 5): 8, (2, 8): 5, (5, 8): 2,  # third column
+    (0, 4): 8, (0, 8): 4, (4, 8): 0,  # first diagonal
+    (2, 4): 6, (2, 6): 4, (4, 6): 2  # second diagonal
+}
 
 
 def out_o(position: tuple):
@@ -46,7 +57,23 @@ player = True
 winner = False
 
 
+def step_ai():
+    global field
+    for combination in almost_winning_combinations:
+        print(field)
+        a, b = combination
+        if field[a] == field[b] == "X":
+            draw_step(almost_winning_combinations[combination]+1)
+            break
+    step = random.randint(0, 8)
+    while field[step] == "X" or field[step] == "O":
+        step = random.randint(0,8)
+    draw_step(step+1)
+
+
+
 def check_winner(field):
+    global winner
     for combination in winning_combinations:
         a, b, c = combination
         if field[a] == field[b] == field[c] and field[a] != "":
@@ -56,20 +83,18 @@ def check_winner(field):
             pygame.draw.line(screen, (0, 0, 0), (100, 150), (500, 150))
             pygame.draw.line(screen, (0, 0, 0), (100, 500), (500, 500))
             font = pygame.font.Font('freesansbold.ttf', 32)
-            winner = True
-            if not player:
-                text = font.render('Player Wins!', True, (255, 255, 255), (0, 0, 0))
-                textRect = text.get_rect()
-                textRect.center = (600 // 2, 625 // 2)
-                screen.blit(text, textRect)
-                print("Player wins!")
-                # pygame.draw.rect(screen, )
-            else:
-                text = font.render('Player Wins!', True, (255, 255, 255), (0, 0, 0))
-                textRect = text.get_rect()
-                textRect.center = (600 // 2,  625 // 2)
-                screen.blit(text, textRect)
-                print("AI wins!")
+            if not winner:
+                winner = True
+                if not player:
+                    text = font.render('Player Wins!', True, (255, 255, 255), (0, 0, 0))
+                    textRect = text.get_rect()
+                    textRect.center = (600 // 2, 625 // 2)
+                    screen.blit(text, textRect)
+                else:
+                    text = font.render('AI Wins!', True, (255, 255, 255), (0, 0, 0))
+                    textRect = text.get_rect()
+                    textRect.center = (600 // 2, 625 // 2)
+                    screen.blit(text, textRect)
 
 
 def draw_step(cell: int) -> None:
@@ -83,7 +108,9 @@ def draw_step(cell: int) -> None:
             field[cell - 1] = "O"
             out_o(coords[cell])
             player = False
+            step_ai()
     elif not player:
+        print("WATAFAK")
         if field[cell - 1] == "":
             field[cell - 1] = "X"
             out_x(coords[cell])
@@ -110,9 +137,7 @@ while game_running:
                 if int(x) > i[0] and int(y) > i[1]:
                     touch = touches[i]
                     break
-            if not winner:
-                draw_step(touch)
-            print(field)
+            draw_step(touch)
         if event.type == QUIT:
             game_running = False
     pygame.display.update()
